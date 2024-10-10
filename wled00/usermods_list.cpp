@@ -204,6 +204,11 @@
 #ifdef USERMOD_STAIRCASE_WIPE
 #include "../usermods/stairway_wipe_basic/stairway-wipe-usermod-v2.h"
 #endif
+
+#ifdef CHRISTUX_PING_PONG_CLOCK
+#include "../usermods/usermod_v2_christux_ping_pong_clock/usermod_v2_christux_ping_pong_clock.h"
+#endif
+
 void registerUsermods()
 {
 /*
@@ -386,5 +391,9 @@ void registerUsermods()
 
   #ifdef USERMOD_STAIRCASE_WIPE
   usermods.add(new StairwayWipeUsermod());
+  #endif
+
+  #ifdef CHRISTUX_PING_PONG_CLOCK
+  usermods.add(new ChristuxPingPongClockUsermod());
   #endif
 }
