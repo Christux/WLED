@@ -3938,6 +3938,47 @@ uint16_t mode_sunrise() {
 }
 static const char _data_FX_MODE_SUNRISE[] PROGMEM = "Sunrise@Time [min],Width;;!;;sx=60";
 
+/*
+ * Mode simulates a gradual sunrise
+ */
+uint16_t mode_christux_sunrise() {
+
+  if (SEGENV.call == 0) {
+    SEGENV.step = millis(); //save starting time, millis() because now can change from sync
+    SEGENV.aux0 = 30 * 60; // sunrise duration in seconds
+  }
+
+  SEGMENT.fill(BLACK);
+
+  uint32_t t = (millis() - SEGENV.step) / 1000;
+
+  float R =  255 * SEGLEN * 1.0  / (1 + exp(-0.4 * 30 / SEGENV.aux0 * (t - SEGENV.aux0 * 0.67) ) );
+  float G =  255 * SEGLEN * 0.7  / (1 + exp(-0.5 * 30 / SEGENV.aux0 * (t - SEGENV.aux0 * 0.7 ) ) );
+  float B =  255 * SEGLEN * 0.1  / (1 + exp(-0.6 * 30 / SEGENV.aux0 * (t - SEGENV.aux0 * 0.8 ) ) );
+
+  uint8_t Rmean = (unsigned int)R / SEGLEN;
+  uint8_t Gmean = (unsigned int)G / SEGLEN;
+  uint8_t Bmean = (unsigned int)B / SEGLEN;
+
+  int Ridx = (unsigned int)R % SEGLEN;
+  int Gidx = (unsigned int)G % SEGLEN;
+  int Bidx = (unsigned int)B % SEGLEN;
+
+  for (int i = 0; i < SEGLEN; i++) {
+    uint8_t r = Rmean;
+    uint8_t g = Gmean;
+    uint8_t b = Bmean;
+
+    if (i < Ridx) r ++;
+    if (i < Gidx) g ++;
+    if (i < Bidx) b ++;
+
+    SEGMENT.setPixelColor(i, RGBW32(r, g, b, 0));
+  }
+
+  return FRAMETIME;
+}
+static const char _data_FX_MODE_CHRISTUX_SUNRISE[] PROGMEM = "Sunrise Christux";
 
 /*
  * Effects by Andrew Tuline
@@ -7849,6 +7890,8 @@ void WS2812FX::setupEffectData() {
 
   addEffect(FX_MODE_WAVESINS, &mode_wavesins, _data_FX_MODE_WAVESINS);
   addEffect(FX_MODE_ROCKTAVES, &mode_rocktaves, _data_FX_MODE_ROCKTAVES);
+
+  addEffect(FX_MODE_CHRISTUX_SUNRISE, &mode_christux_sunrise, _data_FX_MODE_CHRISTUX_SUNRISE);
 
   // --- 2D  effects ---
 #ifndef WLED_DISABLE_2D
