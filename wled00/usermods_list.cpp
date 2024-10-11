@@ -1,4 +1,17 @@
 #include "wled.h"
+
+#ifdef PIXELART_CLIENT_ENABLED
+#if defined(ESP8266)
+#include <ESP8266WiFi.h>        // Include the Wi-Fi library
+#include <ESP8266HTTPClient.h>
+#else
+#include <WiFi.h>
+#include <HTTPClient.h>
+#endif
+#include <WiFiUdp.h>
+#include "../usermods/usermod_pixelart_client/usermod_pixelart_client.h"
+#endif
+
 /*
  * Register your v2 usermods here!
  *   (for v1 usermods using just usermod.cpp, you can ignore this file)
@@ -395,5 +408,9 @@ void registerUsermods()
 
   #ifdef CHRISTUX_PING_PONG_CLOCK
   usermods.add(new ChristuxPingPongClockUsermod());
+  #endif
+
+  #ifdef PIXELART_CLIENT_ENABLED
+  usermods.add(PixelArtClient::getInstance());
   #endif
 }

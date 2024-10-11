@@ -14,3 +14,7 @@
  */
 
 #define CHRISTUX_PING_PONG_CLOCK
+
+#if defined(ESP32)
+#define PIXELART_CLIENT_ENABLED
+#endif

@@ -154,6 +154,7 @@
 #define USERMOD_ID_STAIRWAY_WIPE         44     //Usermod "stairway-wipe-usermod-v2.h"
 
 #define USERMOD_ID_CHRISTUX_PING_PONG_CLOCK 66 //Usermod "usermod_v2_christux_ping_pong_clock.h"
+#define USERMOD_ID_PIXELART_CLIENT       67 // Usermode "usermod_pixelart_client.h" 
 
 //Access point behavior
 #define AP_BEHAVIOR_BOOT_NO_CONN          0     //Open AP when no connection after boot
