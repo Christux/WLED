@@ -213,9 +213,6 @@ private:
 	static const char _name[];
 	static const char _enabled[];
 
-	// any private methods should go here (non-inline methosd should be defined out of class)
-	void publishMqtt(const char *state, bool retain = false); // example for publishing MQTT message
-
 	static PixelArtClient *instance; // Singleton
 
 	unsigned long lastTrigger = 0;
@@ -238,21 +235,6 @@ public:
 	 * Get usermod enabled/disabled state
 	 */
 	inline bool isEnabled() { return enabled; }
-
-	// in such case add the following to another usermod:
-	//  in private vars:
-	//   #ifdef USERMOD_EXAMPLE
-	//   MyExampleUsermod* UM;
-	//   #endif
-	//  in setup()
-	//   #ifdef USERMOD_EXAMPLE
-	//   UM = (MyExampleUsermod*) usermods.lookup(USERMOD_ID_EXAMPLE);
-	//   #endif
-	//  somewhere in loop() or other member method
-	//   #ifdef USERMOD_EXAMPLE
-	//   if (UM != nullptr) isExampleEnabled = UM->isEnabled();
-	//   if (!isExampleEnabled) UM->enable(true);
-	//   #endif
 
 	/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 	/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -306,30 +288,17 @@ public:
 		const String height = String(strip._segments[strip.getCurrSegmentId()].maxHeight);
 		const String getUrl = serverName + (serverName.endsWith("/") ? "" : "/") + serverPath + "?" + clientPhrase + keyPhrase + "&width=" + width + "&height=" + height;
 
-		//Serial.print("requestImageFrames: ");
-		//Serial.println(getUrl);
 		http.begin(client, (getUrl).c_str());
 
 		// Send HTTP GET request, turn back to http 1.0 for streaming
 		http.useHTTP10(true);
 		int httpResponseCode = http.GET();
-		// Serial.print("HTTP Response code: ");
-		// Serial.println(httpResponseCode);
 		if (httpResponseCode != 200)
 		{
-			//Serial.print("image fetch failed, request returned code ");
-			//Serial.println(httpResponseCode);
 			http.end();
 			return;
 		}
-		// payload = http.getStream();
-
-		// Serial.print("total stream length: ");
-		// Serial.println(http.getString().length());
-
-		// Serial.print("parseResponse() start: remaining heap: ");
-		// Serial.println(ESP.getFreeHeap(), DEC);
-
+		
 		DynamicJsonDocument doc(2048);
 		Stream &client = http.getStream();
 
@@ -340,8 +309,6 @@ public:
 
 		if (error)
 		{
-			//Serial.print("deserializeJson() failed: ");
-			//Serial.println(error.c_str());
 			imageLoaded = false;
 			return;
 		}
@@ -354,22 +321,13 @@ public:
 		const char *path = doc["path"]; // "ms-pacman.gif"
 		name = String(path);
 
-		//Serial.print("nextImage.resize: ");
-		//Serial.println(totalFrames);
 		(*nextImage).resize(totalFrames);
-
-		//Serial.print("nextImage.size: ");
-		//Serial.println((*nextImage).size());
 
 		for (size_t i = 0; i < totalFrames; i++)
 		{
 			(*nextImage)[i].resize(returnHeight);
-			//Serial.print("nextImage[i].resize: ");
-			//Serial.println(returnHeight);
 			for (size_t j = 0; j < returnHeight; j++)
 			{
-				//Serial.print("nextImage[i][j].resize: ");
-				//Serial.println(returnWidth);
 				(*nextImage)[i][j].resize(returnWidth);
 			}
 		}
@@ -381,18 +339,12 @@ public:
 		do
 		{
 			deserializeJson(doc, client);
-			// ...extract values from the document...
-
-			// Serial.print("pixelsJson.size: ");
-			// Serial.println(rowPixels.size());
-
+			
 			// read row metadata
 			int frame_duration = doc["duration"]; // 200, 200, 200
 			int frameIndex = doc["frame"];		  // 200, 200, 200
 			(*nextImageDurations)[frameIndex] = frame_duration;
 			int rowIndex = doc["row"]; // 200, 200, 200
-
-			// const JsonArray rows = frame["pixels"];
 
 			JsonArray rowPixels = doc["pixels"].as<JsonArray>();
 			int colIndex = 0;
@@ -414,58 +366,13 @@ public:
 
 		if (error)
 		{
-			//Serial.print("deserializeJson() failed: ");
-			//Serial.println(error.c_str());
 			imageLoaded = false;
 			return;
 		}
 
 		nextImageFrameCount = totalFrames;
 
-		// imageDuration = doc["duration"];		// 10
-		// JsonArray framesJson = doc["frames"].as<JsonArray>();
-		// Serial.print("framesJson.size: ");
-		// Serial.println(framesJson.size());
-
-		// Once the values have been parsed, resize the frames vector to the appropriate size
-
-		// int frameIndex = 0;
-		// for (JsonObject frame : framesJson)
-		// {
-		// 	// parse a frame, which is rows > column nested arrays
-
-		// 	int frame_duration = frame["duration"]; // 200, 200, 200
-		// 	const JsonArray rows = frame["pixels"];
-		// 	int totalRows = rows.size();
-		// 	int rowIndex = 0;
-		// 	(*nextImageDurations)[frameIndex] = frame_duration;
-		// 	(*nextImage)[frameIndex].resize(totalRows);
-
-		// 	for (JsonArray column : rows)
-		// 	{
-		// 		// int totalColumns = column.size();
-		// 		int colIndex = 0;
-		// 		(*nextImage)[frameIndex][rowIndex].resize(totalRows);
-		// 		for (JsonVariant pixel : column)
-		// 		{
-		// 			const char *pixelStr = (pixel.as<const char *>());
-		// 			const CRGB color = hexToCRGB(String(pixelStr));
-		// 			(*nextImage)[frameIndex][rowIndex][colIndex] = color;
-		// 			colIndex++;
-		// 		}
-		// 		rowIndex++;
-		// 	}
-		// 	frameIndex++;
-		// }
-		// nextImageFrameCount = totalFrames;
-
-		//Serial.print("parseResponse() done: remaining heap: ");
-		//Serial.println(ESP.getFreeHeap(), DEC);
 		imageLoaded = true;
-
-		//Serial.print("requestImageFrames finished, remaining heap: ");
-		//Serial.println(ESP.getFreeHeap(), DEC);
-		// return payload;
 	}
 
 	CRGB hexToCRGB(String hexString)
@@ -500,16 +407,6 @@ public:
 		return color;
 	}
 
-	void parseResponse(std::vector<std::vector<std::vector<CRGB>>> &frames, const Stream &response, String playlist, String &pathStr, int &durationInt)
-	{
-
-		;
-		// path, playlist,duration, totalFrame
-
-		// char* input;
-		// size_t inputLength; (optional)
-	}
-
 	void completeImageTransition()
 	{
 
@@ -533,20 +430,8 @@ public:
 
 	void getImage()
 	{
-		//Serial.print("getImage() start: remaining heap: ");
-		//Serial.println(ESP.getFreeHeap(), DEC);
 		// Send request
 		requestImageFrames();
-
-		//	String playlist;
-		//	String name;
-		//Serial.print("getImage() after requestImageFrames: remaining heap: ");
-		//Serial.println(ESP.getFreeHeap(), DEC);
-
-		// parseResponse(frames, rawResponse, playlist, name, duration);
-
-		//Serial.print("requestImageFrames new image: ");
-		//Serial.println(name);
 
 		// prime these for next redraw
 		if (imageLoaded)
@@ -592,15 +477,6 @@ public:
 		// Send HTTP GET request
 		int httpResponseCode = http.GET();
 		serverUp = (httpResponseCode == 200);
-		// if (!serverUp)
-		// {
-		// 	Serial.print("Pixel art client failed to checkin, request returned ");
-		// 	Serial.println(httpResponseCode);
-		// }
-		// else
-		// {
-		// 	Serial.print("Pixel art client checked in OK");
-		// }
 		http.end();
 	}
 
@@ -629,10 +505,6 @@ public:
 		// if usermod is disabled or called during strip updating just exit
 		// NOTE: on very long strips strip.isUpdating() may always return true so update accordingly
 
-		// Serial.println("looping");
-		// Serial.println(!enabled);
-		// Serial.println(strip.isUpdating());
-		// Serial.println(!strip.isMatrix);
 		if (!enabled || !strip.isMatrix || !isEffectActive())
 			return;
 
@@ -646,7 +518,6 @@ public:
 		// request next image
 		if (millis() - lastRequestTime > imageDuration * 1000)
 		{
-			//Serial.println("in loop, getting image");
 			lastRequestTime = millis();
 			getImage();
 		}
@@ -719,19 +590,6 @@ public:
 		JsonObject user = root["u"];
 		if (user.isNull())
 			user = root.createNestedObject("u");
-
-		// this code adds "u":{"ExampleUsermod":[20," lux"]} to the info object
-		// int reading = 20;
-		// JsonArray lightArr = user.createNestedArray(FPSTR(_name))); //name
-		// lightArr.add(reading); //value
-		// lightArr.add(F(" lux")); //unit
-
-		// if you are implementing a sensor usermod, you may publish sensor data
-		// JsonObject sensor = root[F("sensor")];
-		// if (sensor.isNull()) sensor = root.createNestedObject(F("sensor"));
-		// temp = sensor.createNestedArray(F("light"));
-		// temp.add(reading);
-		// temp.add(F("lux"));
 	}
 
 	/*
@@ -746,8 +604,6 @@ public:
 		JsonObject usermod = root[FPSTR(_name)];
 		if (usermod.isNull())
 			usermod = root.createNestedObject(FPSTR(_name));
-
-		// usermod["user0"] = userVar0;
 	}
 
 	/*
@@ -773,36 +629,6 @@ public:
 	 * addToConfig() can be used to add custom persistent settings to the cfg.json file in the "um" (usermod) object.
 	 * It will be called by WLED when settings are actually saved (for example, LED settings are saved)
 	 * If you want to force saving the current state, use serializeConfig() in your loop().
-	 *
-	 * CAUTION: serializeConfig() will initiate a filesystem write operation.
-	 * It might cause the LEDs to stutter and will cause flash wear if called too often.
-	 * Use it sparingly and always in the loop, never in network callbacks!
-	 *
-	 * addToConfig() will make your settings editable through the Usermod Settings page automatically.
-	 *
-	 * Usermod Settings Overview:
-	 * - Numeric values are treated as floats in the browser.
-	 *   - If the numeric value entered into the browser contains a decimal point, it will be parsed as a C float
-	 *     before being returned to the Usermod.  The float data type has only 6-7 decimal digits of precision, and
-	 *     doubles are not supported, numbers will be rounded to the nearest float value when being parsed.
-	 *     The range accepted by the input field is +/- 1.175494351e-38 to +/- 3.402823466e+38.
-	 *   - If the numeric value entered into the browser doesn't contain a decimal point, it will be parsed as a
-	 *     C int32_t (range: -2147483648 to 2147483647) before being returned to the usermod.
-	 *     Overflows or underflows are truncated to the max/min value for an int32_t, and again truncated to the type
-	 *     used in the Usermod when reading the value from ArduinoJson.
-	 * - Pin values can be treated differently from an integer value by using the key name "pin"
-	 *   - "pin" can contain a single or array of integer values
-	 *   - On the Usermod Settings page there is simple checking for pin conflicts and warnings for special pins
-	 *     - Red color indicates a conflict.  Yellow color indicates a pin with a warning (e.g. an input-only pin)
-	 *   - Tip: use int8_t to store the pin value in the Usermod, so a -1 value (pin not set) can be used
-	 *
-	 * See usermod_v2_auto_save.h for an example that saves Flash space by reusing ArduinoJson key name strings
-	 *
-	 * If you need a dedicated settings page with custom layout for your Usermod, that takes a lot more work.
-	 * You will have to add the setting to the HTML, xml.cpp and set.cpp manually.
-	 * See the WLED Soundreactive fork (code and wiki) for reference.  https://github.com/atuline/WLED
-	 *
-	 * I highly recommend checking out the basics of ArduinoJson serialization and deserialization in order to use custom settings!
 	 */
 	void addToConfig(JsonObject &root)
 	{
@@ -818,23 +644,9 @@ public:
 	/*
 	 * readFromConfig() can be used to read back the custom settings you added with addToConfig().
 	 * This is called by WLED when settings are loaded (currently this only happens immediately after boot, or after saving on the Usermod Settings page)
-	 *
-	 * readFromConfig() is called BEFORE setup(). This means you can use your persistent values in setup() (e.g. pin assignments, buffer sizes),
-	 * but also that if you want to write persistent values to a dynamic buffer, you'd need to allocate it here instead of in setup.
-	 * If you don't know what that is, don't fret. It most likely doesn't affect your use case :)
-	 *
-	 * Return true in case the config values returned from Usermod Settings were complete, or false if you'd like WLED to save your defaults to disk (so any missing values are editable in Usermod Settings)
-	 *
-	 * getJsonValue() returns false if the value is missing, or copies the value into the variable provided and returns true if the value is present
-	 * The configComplete variable is true only if the "exampleUsermod" object and all values are present.  If any values are missing, WLED will know to call addToConfig() to save them
-	 *
-	 * This function is guaranteed to be called on boot, but could also be called every time settings are updated
 	 */
 	bool readFromConfig(JsonObject &root)
 	{
-		// default settings values could be set here (or below using the 3-argument getJsonValue()) instead of in the class definition or constructor
-		// setting them inside readFromConfig() is slightly more robust, handling the rare but plausible use case of single value being missing after boot (e.g. if the cfg.json was manually edited and a value was removed)
-
 		JsonObject top = root[FPSTR(_name)];
 
 		bool configComplete = !top.isNull();
@@ -870,17 +682,9 @@ public:
 		// draw currently cached image again
 		if (enabled && imageLoaded && isEffectActive())
 		{
-			// redrawing
-			// Serial.println("handleOverlayDraw() -> redrawing");
-
 			// cycle frames within a multi-frame image (ie animated gif)
 			if (millis() - refreshTime > currentFrameDuration)
 			{
-				// Serial.print("flipping frames: ");
-				// Serial.print(currentFrameIndex);
-				// Serial.print(" of ");
-				// Serial.print(currentImageFrameCount);
-				// Serial.println("");
 				refreshTime = millis();
 				currentFrameIndex++;
 				currentFrameIndex = currentFrameIndex % currentImageFrameCount;
@@ -893,11 +697,7 @@ public:
 			{
 				setPixelsFrom2DVector(currentFrame, nextFrame, nextBlend, currentImageBackgroundColour);
 				nextBlend += crossfadeIncrement;
-				// while(nextBlend<=255) {
-
-				// 	busses.show();
-				// 	delay(1000/crossfadeFrameRate);
-				// }
+				
 				if (nextBlend > 255)
 				{
 					nextBlend = 0;
@@ -909,68 +709,6 @@ public:
 				setPixelsFrom2DVector(currentFrame, currentImageBackgroundColour);
 			}
 		}
-	}
-
-	/**
-	 * handleButton() can be used to override default button behaviour. Returning true
-	 * will prevent button working in a default way.
-	 * Replicating button.cpp
-	 */
-	bool handleButton(uint8_t b)
-	{
-		yield();
-		// ignore certain button types as they may have other consequences
-		if (!enabled || buttonType[b] == BTN_TYPE_NONE || buttonType[b] == BTN_TYPE_RESERVED || buttonType[b] == BTN_TYPE_PIR_SENSOR || buttonType[b] == BTN_TYPE_ANALOG || buttonType[b] == BTN_TYPE_ANALOG_INVERTED)
-		{
-			return false;
-		}
-
-		bool handled = false;
-		// do your button handling here
-		return handled;
-	}
-
-#ifndef WLED_DISABLE_MQTT
-	/**
-	 * handling of MQTT message
-	 * topic only contains stripped topic (part after /wled/MAC)
-	 */
-	bool onMqttMessage(char *topic, char *payload)
-	{
-		// check if we received a command
-		// if (strlen(topic) == 8 && strncmp_P(topic, PSTR("/command"), 8) == 0) {
-		//  String action = payload;
-		//  if (action == "on") {
-		//    enabled = true;
-		//    return true;
-		//  } else if (action == "off") {
-		//    enabled = false;
-		//    return true;
-		//  } else if (action == "toggle") {
-		//    enabled = !enabled;
-		//    return true;
-		//  }
-		//}
-		return false;
-	}
-
-	/**
-	 * onMqttConnect() is called when MQTT connection is established
-	 */
-	void onMqttConnect(bool sessionPresent)
-	{
-		// do any MQTT related initialisation here
-		// publishMqtt("I am alive!");
-	}
-#endif
-
-	/**
-	 * onStateChanged() is used to detect WLED state change
-	 * @mode parameter is CALL_MODE_... parameter used for notifications
-	 */
-	void onStateChange(uint8_t mode)
-	{
-		// do something if WLED state changed (color, brightness, effect, preset, etc)
 	}
 
 	/*
@@ -992,18 +730,3 @@ PixelArtClient *PixelArtClient::instance = nullptr;
 const char PixelArtClient::_name[] PROGMEM = "PixelArtClient";
 const char PixelArtClient::_enabled[] PROGMEM = "enabled";
 
-// implementation of non-inline member methods
-
-void PixelArtClient::publishMqtt(const char *state, bool retain)
-{
-#ifndef WLED_DISABLE_MQTT
-	// Check if MQTT Connected, otherwise it will crash the 8266
-	if (WLED_MQTT_CONNECTED)
-	{
-		char subuf[64];
-		strcpy(subuf, mqttDeviceTopic);
-		strcat_P(subuf, PSTR("/example"));
-		mqtt->publish(subuf, 0, retain, state);
-	}
-#endif
-}
