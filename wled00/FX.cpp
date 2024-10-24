@@ -3939,22 +3939,23 @@ uint16_t mode_sunrise() {
 static const char _data_FX_MODE_SUNRISE[] PROGMEM = "Sunrise@Time [min],Width;;!;;sx=60";
 
 /*
- * Mode simulates a gradual sunrise
+ * Mode simulates a smooth sunrise
  */
 uint16_t mode_christux_sunrise() {
 
-  if (SEGENV.call == 0) {
+  if (SEGENV.call == 0 || SEGMENT.speed != SEGENV.aux0) {
     SEGENV.step = millis(); //save starting time, millis() because now can change from sync
-    SEGENV.aux0 = 30 * 60; // sunrise duration in seconds
+    SEGENV.aux0 = SEGMENT.speed; // sunrise duration in minutes
+    SEGENV.aux1 = SEGMENT.speed * 60; // sunrise duration in seconds
   }
 
   SEGMENT.fill(BLACK);
 
   uint32_t t = (millis() - SEGENV.step) / 1000;
 
-  float R =  255 * SEGLEN * 1.0  / (1 + exp(-0.4 * 30 / SEGENV.aux0 * (t - SEGENV.aux0 * 0.67) ) );
-  float G =  255 * SEGLEN * 0.7  / (1 + exp(-0.5 * 30 / SEGENV.aux0 * (t - SEGENV.aux0 * 0.7 ) ) );
-  float B =  255 * SEGLEN * 0.1  / (1 + exp(-0.6 * 30 / SEGENV.aux0 * (t - SEGENV.aux0 * 0.8 ) ) );
+  float R =  255 * SEGLEN * 1.0  / (1 + exp(-0.4 * 30 / SEGENV.aux1 * (t - SEGENV.aux1 * 0.67) ) );
+  float G =  255 * SEGLEN * 0.7  / (1 + exp(-0.5 * 30 / SEGENV.aux1 * (t - SEGENV.aux1 * 0.7 ) ) );
+  float B =  255 * SEGLEN * 0.1  / (1 + exp(-0.6 * 30 / SEGENV.aux1 * (t - SEGENV.aux1 * 0.8 ) ) );
 
   uint8_t Rmean = (unsigned int)R / SEGLEN;
   uint8_t Gmean = (unsigned int)G / SEGLEN;
@@ -3978,7 +3979,7 @@ uint16_t mode_christux_sunrise() {
 
   return FRAMETIME;
 }
-static const char _data_FX_MODE_CHRISTUX_SUNRISE[] PROGMEM = "Sunrise Christux";
+static const char _data_FX_MODE_CHRISTUX_SUNRISE[] PROGMEM = "Sunrise Christux@Time [min];sx=30";
 
 /*
  * Effects by Andrew Tuline
